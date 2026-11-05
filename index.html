@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1e3533">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Club Freya">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Club Freya & Speed Laundry · Tarjeta de fidelidad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -105,6 +107,7 @@ textarea{min-height:90px;resize:vertical}
 .scanstamp{margin-top:10px}
 .qrmodal .qrbox{background:#fff;border-radius:16px;padding:12px;width:240px;height:240px;margin:6px auto}
 .qrmodal .qrbox svg{width:100%;height:100%}
+.steps-i{margin:0;padding-left:22px}.steps-i li{margin:8px 0;line-height:1.4}
 .countdown{text-align:center;font-weight:700;font-size:1.1rem}
 .reward{margin-top:6px;font-size:.8rem;font-weight:600;color:var(--c)}
 .msg{border-left:3px solid var(--c,var(--freya));padding:8px 0 8px 12px}
@@ -254,7 +257,12 @@ const T = {
     reward_title:'¡Premio conseguido!', reward_text:'{reward}. Pídelo en el mostrador.',
     one_left:'¡Solo te falta 1 sello para: {reward}!', gift_banner:'¡Tu tarjeta ya tiene {n} sello de regalo en {biz}!', tx_gift:'Sello de regalo',
     rule_expiry:'El saldo y los sellos caducan si pasan {m} meses sin visitarnos.',
-    home_tip:'Consejo: añade esta página a la pantalla de inicio (Compartir → Añadir a inicio) para tener la tarjeta siempre a mano.',
+    home_tip:'Instálala en tu móvil y tendrás la tarjeta siempre a mano, como una app más.',
+    install:'Instalar app en el móvil', install_ios_t:'Instalar en iPhone o iPad', install_and_t:'Instalar en Android',
+    install_ios:['Abre esta página en <b>Safari</b> (si estás en WhatsApp, Instagram o Facebook, pulsa los tres puntos y elige «Abrir en Safari»).','Pulsa el botón <b>Compartir</b>: el cuadrado con una flecha hacia arriba.','Baja y pulsa <b>«Añadir a pantalla de inicio»</b>.','Pulsa <b>«Añadir»</b>. Te aparecerá el icono «Club Freya».'],
+    install_and:['Abre esta página en <b>Chrome</b> (si estás en WhatsApp, Instagram o Facebook, pulsa los tres puntos y elige «Abrir en Chrome»).','Pulsa los <b>tres puntos ⋮</b> de arriba a la derecha.','Elige <b>«Instalar aplicación»</b> o «Añadir a pantalla de inicio» y confirma.','Busca «Club Freya» en tus aplicaciones: a veces no sale en la pantalla principal, sino en el cajón de apps.'],
+    installed:'¡App instalada! Búscala en tus aplicaciones con el nombre «Club Freya».',
+    paste_t:'¿El enlace se abrió en otro sitio?', paste:'En el email, mantén pulsado el botón, copia el enlace y pégalo aquí:', paste_btn:'Entrar con el enlace', paste_err:'Ese enlace no vale o ha caducado. Pide uno nuevo.',
     mkt_toggle:'Recibir ofertas y novedades', logout:'Cerrar sesión',
     tx_earn:'Cashback', tx_redeem:'Saldo usado', tx_bonus:'Regalo de bienvenida', tx_stamp:'Sello', tx_reward:'Premio canjeado', tx_expire:'Caducado', tx_adjust:'Ajuste',
     of_ticket:'compra de {amt}', staff_here:'Estás conectado como equipo. Las tarjetas se abren en el móvil de cada cliente.', valid_until:'Válido hasta {d}', new:'Nuevo' },
@@ -281,7 +289,12 @@ const T = {
     reward_title:'Reward unlocked!', reward_text:'{reward}. Ask for it at the counter.',
     one_left:'Just 1 more stamp for: {reward}!', gift_banner:'Your card already has {n} free stamp at {biz}!', tx_gift:'Free stamp',
     rule_expiry:'Balance and stamps expire after {m} months without a visit.',
-    home_tip:'Tip: add this page to your home screen (Share → Add to Home Screen) to keep your card at hand.',
+    home_tip:'Install it on your phone and your card is always at hand, like any other app.',
+    install:'Install the app on your phone', install_ios_t:'Install on iPhone or iPad', install_and_t:'Install on Android',
+    install_ios:['Open this page in <b>Safari</b> (if you are in WhatsApp, Instagram or Facebook, tap the three dots and choose “Open in Safari”).','Tap the <b>Share</b> button: the square with an arrow pointing up.','Scroll down and tap <b>“Add to Home Screen”</b>.','Tap <b>“Add”</b>. The “Club Freya” icon will appear.'],
+    install_and:['Open this page in <b>Chrome</b> (if you are in WhatsApp, Instagram or Facebook, tap the three dots and choose “Open in Chrome”).','Tap the <b>three dots ⋮</b> at the top right.','Choose <b>“Install app”</b> or “Add to Home screen” and confirm.','Look for “Club Freya” in your apps: sometimes it is not on the home screen but in the app drawer.'],
+    installed:'App installed! Find it in your apps as “Club Freya”.',
+    paste_t:'Did the link open somewhere else?', paste:'In the email, press and hold the button, copy the link and paste it here:', paste_btn:'Sign in with the link', paste_err:'That link is not valid or has expired. Ask for a new one.',
     mkt_toggle:'Receive offers and news', logout:'Log out',
     tx_earn:'Cashback', tx_redeem:'Balance used', tx_bonus:'Welcome gift', tx_stamp:'Stamp', tx_reward:'Reward redeemed', tx_expire:'Expired', tx_adjust:'Adjustment',
     of_ticket:'purchase of {amt}', staff_here:'You are signed in as staff. Cards open on each customer’s phone.', valid_until:'Valid until {d}', new:'New' },
@@ -308,7 +321,12 @@ const T = {
     reward_title:'Prämie geschafft!', reward_text:'{reward}. Frag an der Theke danach.',
     one_left:'Nur noch 1 Stempel bis: {reward}!', gift_banner:'Deine Karte hat schon {n} Gratis-Stempel bei {biz}!', tx_gift:'Gratis-Stempel',
     rule_expiry:'Guthaben und Stempel verfallen nach {m} Monaten ohne Besuch.',
-    home_tip:'Tipp: Füge diese Seite zum Home-Bildschirm hinzu (Teilen → Zum Home-Bildschirm), dann hast du deine Karte immer dabei.',
+    home_tip:'Installiere sie auf deinem Handy, dann hast du deine Karte immer dabei – wie eine normale App.',
+    install:'App auf dem Handy installieren', install_ios_t:'Auf iPhone oder iPad installieren', install_and_t:'Auf Android installieren',
+    install_ios:['Öffne diese Seite in <b>Safari</b> (wenn du in WhatsApp, Instagram oder Facebook bist, tippe auf die drei Punkte und wähle „In Safari öffnen“).','Tippe auf <b>Teilen</b>: das Quadrat mit dem Pfeil nach oben.','Scrolle nach unten und tippe auf <b>„Zum Home-Bildschirm“</b>.','Tippe auf <b>„Hinzufügen“</b>. Das Symbol „Club Freya“ erscheint.'],
+    install_and:['Öffne diese Seite in <b>Chrome</b> (wenn du in WhatsApp, Instagram oder Facebook bist, tippe auf die drei Punkte und wähle „In Chrome öffnen“).','Tippe oben rechts auf die <b>drei Punkte ⋮</b>.','Wähle <b>„App installieren“</b> oder „Zum Startbildschirm hinzufügen“ und bestätige.','Suche „Club Freya“ in deinen Apps: manchmal ist sie nicht auf dem Startbildschirm, sondern in der App-Übersicht.'],
+    installed:'App installiert! Du findest sie in deinen Apps als „Club Freya“.',
+    paste_t:'Hat sich der Link woanders geöffnet?', paste:'Halte in der E-Mail den Button gedrückt, kopiere den Link und füge ihn hier ein:', paste_btn:'Mit dem Link anmelden', paste_err:'Dieser Link ist ungültig oder abgelaufen. Fordere einen neuen an.',
     mkt_toggle:'Angebote und Neuigkeiten erhalten', logout:'Abmelden',
     tx_earn:'Cashback', tx_redeem:'Guthaben eingelöst', tx_bonus:'Willkommensgeschenk', tx_stamp:'Stempel', tx_reward:'Prämie eingelöst', tx_expire:'Verfallen', tx_adjust:'Korrektur',
     of_ticket:'Einkauf über {amt}', staff_here:'Du bist als Team angemeldet. Karten öffnen sich auf dem Handy der Kunden.', valid_until:'Gültig bis {d}', new:'Neu' }
@@ -341,6 +359,11 @@ const fmtCard = c => c ? c.replace(/^(FS)(\d{4})(\d{4})$/, '$1 $2 $3') : '';
 const genCardNo = () => 'FS' + String(Math.floor(Math.random()*1e8)).padStart(8,'0');
 const parseCard = s => { const m = String(s||'').toUpperCase().replace(/[\s-]/g,'').match(/FS\d{8}/); return m ? m[0] : null; };
 const rid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+let deferredPrompt = null;
+const isStandalone = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; });
+window.addEventListener('appinstalled', () => { deferredPrompt = null; toast(t('installed'), 6000); const b = $('#instB'); if (b) b.closest('.panel').remove(); });
 const rid2 = (n=14) => { const a = new Uint8Array(n); (crypto||window.crypto).getRandomValues(a); return [...a].map(x => 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'[x % 56]).join(''); };
 const parseToken = s => { s = String(s||''); const m = s.match(/[?&]s=([A-Za-z0-9]{8,32})/) || s.match(/^FSS:([A-Za-z0-9]{8,32})$/); return m ? m[1] : null; };
 const codeErr = c => { const e = new Error(c); e.code2 = c; return e; };
@@ -529,6 +552,13 @@ const FireDB = {
   },
   async join(p){ store.setJSON('fs_pending_profile', p); return this._sendLink(p.email.trim().toLowerCase()); },
   async recover(email){ return this._sendLink(email.trim().toLowerCase()); },
+  async completeLink(link){
+    if (!this.auth.isSignInWithEmailLink(link)) throw new Error('bad link');
+    const email = store.get('fs_pending_email'); if (!email) throw new Error('no email');
+    const cred = await this.auth.signInWithEmailLink(email, link);
+    this.user = cred.user; this._staff = false;
+    await this._ensureCustomer();
+  },
   async logout(){ await this.auth.signOut(); this.user = null; this._staff = false; },
   async updateMe(f){ await this.db.doc('customers/'+this.user.uid).update(f); },
   async myTx(){ return this.txOf(this.user.uid); },
@@ -745,7 +775,7 @@ async function renderCustomer(){
         : `<p class="muted small">${t('no_tx')}</p>`}</div>
     </div>
     <div class="panel"><details><summary>${t('how')}</summary><ul class="rules">${rules.map(r=>`<li>${r}</li>`).join('')}</ul></details></div>
-    <p class="small muted" style="margin:14px 4px">${t('home_tip')}</p>
+    ${isStandalone() ? '' : `<div class="panel stack" style="margin-top:14px"><p class="small" style="margin:0">${t('home_tip')}</p><button class="btn freya block" id="instB">📲 ${t('install')}</button></div>`}
     <div class="panel">
       <label class="check"><input type="checkbox" id="mktT" ${me.consentMkt?'checked':''}> <span>${t('mkt_toggle')}</span></label>
       <div class="row" style="margin-top:12px"><span class="small muted">${esc(me.email)}</span><div class="spacer"></div><button class="btn ghost sm" id="logout">${t('logout')}</button></div>
@@ -755,6 +785,7 @@ async function renderCustomer(){
   bindLangPills($('#app'), async l => { await DB.updateMe({lang:l}); });
   $('#mktT').onchange = async e => { await DB.updateMe({consentMkt:e.target.checked, consentAt:Date.now()}); render(); };
   $('#logout').onclick = async () => { await DB.logout(); render(); };
+  const ib = $('#instB'); if (ib) ib.onclick = doInstall;
   const sc = $('#scanSt');
   if (sc) sc.onclick = () => openScanner(code => handleStampCode(code), {validate:parseToken, title:t('scan_title'), camErr:t('scan_cam_err'), close:t('close')});
   const sf = $('#stFile');
@@ -790,6 +821,31 @@ function celebrate({title, text, big='', reward=false}){
   if (!reward) setTimeout(() => { if ($('#cel')) close(); }, 3500);
 }
 
+/* ---------- Instalar como app ---------- */
+function pasteBoxHTML(){
+  if (DEMO) return '';
+  return `<div class="panel stack" style="margin-top:14px"><b>${t('paste_t')}</b><p class="small" style="margin:0">${t('paste')}</p>
+    <input type="text" id="pasteL" placeholder="https://club-freya.firebaseapp.com/..." autocomplete="off">
+    <div class="err" id="pasteErr"></div><button class="btn freya block" id="pasteB">${t('paste_btn')}</button></div>`;
+}
+function bindPasteBox(){
+  const b = $('#pasteB'); if (!b) return;
+  b.onclick = async () => {
+    const link = $('#pasteL').value.trim();
+    try{ await DB.completeLink(link); render(); }
+    catch(e){ $('#pasteErr').textContent = t('paste_err'); }
+  };
+}
+function doInstall(){
+  if (deferredPrompt){ const p = deferredPrompt; deferredPrompt = null; p.prompt(); return; }
+  const ios = isIOS(); const steps = ios ? T[LANG].install_ios : T[LANG].install_and;
+  $('#modal').innerHTML = `<div class="modal"><div class="box stack">
+    <div class="row"><img src="${MARK_FREYA}" alt="" style="width:44px;height:44px;border-radius:50%"><img src="${MARK_SPEED}" alt="" style="width:44px;height:44px;border-radius:10px"><h3 style="margin-left:6px">${t(ios ? 'install_ios_t' : 'install_and_t')}</h3></div>
+    <ol class="steps-i">${steps.map(x => `<li>${x}</li>`).join('')}</ol>
+    <button class="btn block" id="instClose">${t('close')}</button></div></div>`;
+  $('#instClose').onclick = () => { $('#modal').innerHTML = ''; };
+}
+
 function renderJoin(cfg, mode='join', info=''){
   document.documentElement.lang = LANG;
   const benefits = [];
@@ -802,7 +858,7 @@ function renderJoin(cfg, mode='join', info=''){
   }
   let body;
   if (mode === 'sent'){
-    body = `<div class="panel stack"><h2>${t('check_t')}</h2><p>${t('check',{email:esc(info)})}</p><button class="btn ghost" id="backB">${t('back')}</button></div>`;
+    body = `<div class="panel stack"><h2>${t('check_t')}</h2><p>${t('check',{email:esc(info)})}</p><button class="btn ghost" id="backB">${t('back')}</button></div>${pasteBoxHTML()}`;
   } else if (mode === 'recover'){
     body = `<form class="panel stack" id="recF" novalidate>
       <h2>${t('recover')}</h2>
@@ -819,7 +875,7 @@ function renderJoin(cfg, mode='join', info=''){
       <div class="err" id="jErr"></div>
       <button class="btn block freya" type="submit">${t('create')}</button>
       <p class="small muted" style="text-align:center;margin:4px 0 0">${t('have')} <a href="#" id="toRec">${t('recover')}</a></p>
-    </form>`;
+    </form>${store.get('fs_pending_email') ? pasteBoxHTML() : ''}`;
   }
   $('#app').innerHTML = `<div class="wrap">
     <div class="row" style="margin-bottom:18px"><div class="brandmark">${marksHTML()}<b>${esc(cfg.programName)}</b></div><div class="spacer"></div>${langPills()}</div>
@@ -832,6 +888,7 @@ function renderJoin(cfg, mode='join', info=''){
     </div>
     <div style="height:14px"></div>${body}</div>`;
   bindLangPills($('#app'));
+  bindPasteBox();
   const back = $('#backB'); if (back) back.onclick = () => renderJoin(cfg);
   const toRec = $('#toRec'); if (toRec) toRec.onclick = e => { e.preventDefault(); renderJoin(cfg, 'recover'); };
   const jf = $('#joinF');
@@ -1245,6 +1302,11 @@ async function renderPoster(){
     const u = new URL(location.href); const tok = u.searchParams.get('s');
     if (tok){ store.set('fs_pending_stamp', tok); u.searchParams.delete('s'); u.hash = 'cliente'; history.replaceState(null, '', u.toString()); }
   }catch(e){}
+  if (!DEMO){
+    const add = (rel, href) => { const l = document.createElement('link'); l.rel = rel; l.href = href; document.head.appendChild(l); };
+    add('manifest', 'manifest.webmanifest'); add('apple-touch-icon', 'apple-touch-icon.png');
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
   $('#app').innerHTML = '<div class="wrap"><p class="muted">Cargando…</p></div>';
   try{ await DB.init(); }catch(e){ $('#app').innerHTML = `<div class="wrap"><div class="panel"><h2>Error</h2><p class="err">${esc(e.message)}</p></div></div>`; return; }
   // La tarjeta del cliente se actualiza sola cuando el equipo le pone un sello o saldo
