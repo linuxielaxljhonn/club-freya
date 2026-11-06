@@ -1,6 +1,6 @@
 // Service worker del Club Freya & Speed Laundry.
 // Siempre intenta la versión más reciente de internet; si no hay conexión, abre la última guardada.
-const CACHE = 'club-freya-v1';
+const CACHE = 'club-freya-v3';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

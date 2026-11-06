@@ -96,6 +96,9 @@ textarea{min-height:90px;resize:vertical}
 .dots i.on{background:var(--c)}
 @keyframes pop{0%{transform:scale(.2);opacity:0}60%{transform:scale(1.45);opacity:1}100%{transform:scale(1)}}
 @keyframes fall{0%{transform:translateY(-20px) rotate(0)}100%{transform:translateY(110vh) rotate(540deg)}}
+.bar{height:10px;background:#e8e1d6;border-radius:99px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--c);border-radius:99px;animation:grow 1.2s ease-out both}
+@keyframes grow{from{width:0}}
 .dots i.pop{animation:pop .7s cubic-bezier(.2,1.4,.5,1) both}
 .celebrate{position:fixed;inset:0;display:grid;place-items:center;background:rgba(15,40,50,.55);z-index:70;padding:20px;overflow:hidden}
 .celebrate .box{position:relative;background:#fff;border-radius:22px;padding:24px 22px;text-align:center;max-width:340px;width:100%;animation:pop .55s both;box-shadow:0 20px 50px rgba(0,0,0,.3)}
@@ -221,13 +224,14 @@ const marksHTML = () => `<div class="marks"><img class="fm" src="${MARK_FREYA}" 
 const bizIcon = k => k === 'freya' ? `<img class="bizicon fm" src="${MARK_FREYA}" alt="">` : `<img class="bizicon" src="${MARK_SPEED}" alt="">`;
 
 const DEFAULT_CONFIG = {
+  rulesVersion: 2,           // súbelo cuando cambien las reglas por defecto: las guardadas antes se descartan
   programName: 'Club Freya & Speed Laundry',
   expiryMonths: 12,
   staffPin: '1234',            // solo modo demo
   biz: {
-    freya:   { cashbackPct:3, minTicket:35, maxRedeemPct:50, welcomeBonus:3, stampsGoal:0, welcomeStamps:0,
-               reward:{es:'',en:'',de:''} },
-    laundry: { cashbackPct:0, minTicket:0, maxRedeemPct:0, welcomeBonus:0, stampsGoal:10, welcomeStamps:1,
+    freya:   { cashbackPct:0, minTicket:0, maxRedeemPct:0, welcomeBonus:0, stampsGoal:0, welcomeStamps:0, spendGoal:120,
+               reward:{es:'1 masaje de 20 min gratis (Indian head o pies)', en:'1 free 20-min massage (Indian head or feet)', de:'1 Gratis-Massage, 20 Min. (indische Kopfmassage oder Füße)'} },
+    laundry: { cashbackPct:0, minTicket:0, maxRedeemPct:0, welcomeBonus:0, stampsGoal:12, welcomeStamps:1, spendGoal:0,
                reward:{es:'1 secado gratis', en:'1 free drying cycle', de:'1 Gratis-Trocknung'} }
   }
 };
@@ -249,6 +253,7 @@ const T = {
     rule_welcome:'{biz}: regalo de bienvenida de {amt} con tu primera compra.',
     rule_stamps:'{biz}: 1 sello por visita (escanea el QR del mostrador). Con {n} sellos: {reward}.',
     rule_gift:'{biz}: tu tarjeta empieza con {n} sello de regalo.',
+    rule_spend:'{biz}: por cada {goal} en servicios, te regalamos {reward}.', spent:'Acumulado en servicios', to_reward_eur:'Te faltan {n} para: {reward}', one_left_eur:'¡Solo te faltan {n} para: {reward}!', tx_spend:'Servicio',
     scan_stamp:'Escanear QR de sello', photo_stamp:'Foto del QR', scan_title:'Escanea el QR del mostrador', close:'Cerrar',
     scan_cam_err:'La cámara no está disponible aquí. Usa “Foto del QR”.',
     stamp_ok:'¡Sello {n} de {goal}!', stamp_keep:'Te faltan {left} para: {reward}', great:'¡Genial!',
@@ -281,6 +286,7 @@ const T = {
     rule_welcome:'{biz}: welcome gift of {amt} with your first purchase.',
     rule_stamps:'{biz}: 1 stamp per visit (scan the QR at the counter). With {n} stamps: {reward}.',
     rule_gift:'{biz}: your card starts with {n} free stamp.',
+    rule_spend:'{biz}: for every {goal} spent on treatments, you get {reward}.', spent:'Spent on treatments', to_reward_eur:'{n} more for: {reward}', one_left_eur:'Only {n} more for: {reward}!', tx_spend:'Treatment',
     scan_stamp:'Scan stamp QR', photo_stamp:'QR photo', scan_title:'Scan the QR at the counter', close:'Close',
     scan_cam_err:'The camera is not available here. Use “QR photo”.',
     stamp_ok:'Stamp {n} of {goal}!', stamp_keep:'{left} more for: {reward}', great:'Great!',
@@ -313,6 +319,7 @@ const T = {
     rule_welcome:'{biz}: {amt} Willkommensgeschenk bei deinem ersten Einkauf.',
     rule_stamps:'{biz}: 1 Stempel pro Besuch (scanne den QR-Code an der Theke). Mit {n} Stempeln: {reward}.',
     rule_gift:'{biz}: Deine Karte startet mit {n} Gratis-Stempel.',
+    rule_spend:'{biz}: Für je {goal} an Behandlungen bekommst du {reward}.', spent:'Für Behandlungen ausgegeben', to_reward_eur:'Noch {n} bis: {reward}', one_left_eur:'Nur noch {n} bis: {reward}!', tx_spend:'Behandlung',
     scan_stamp:'Stempel-QR scannen', photo_stamp:'Foto vom QR', scan_title:'Scanne den QR-Code an der Theke', close:'Schließen',
     scan_cam_err:'Die Kamera ist hier nicht verfügbar. Nutze „Foto vom QR“.',
     stamp_ok:'Stempel {n} von {goal}!', stamp_keep:'Noch {left} bis: {reward}', great:'Super!',
@@ -351,7 +358,7 @@ const memStore = {};
 let LANG = store.get('fs_lang') || (navigator.language||'es').slice(0,2);
 if (!T[LANG]) LANG = 'en';
 const t = (k, v={}) => fill((T[LANG][k] ?? T.es[k] ?? k), v);
-const money = (n, lang=LANG) => new Intl.NumberFormat(LOCALES[lang]||'es-ES', {style:'currency', currency:'EUR'}).format(Number(n)||0);
+const money = (n, lang=LANG) => { n = Number(n)||0; const d = Math.abs(n % 1) < 0.005 ? 0 : 2; return new Intl.NumberFormat(LOCALES[lang]||'es-ES', {style:'currency', currency:'EUR', minimumFractionDigits:d, maximumFractionDigits:2}).format(n); };
 const moneyES = n => money(n, 'es');
 const fmtDate = (ts, lang=LANG) => ts ? new Date(ts).toLocaleDateString(LOCALES[lang]||'es-ES', {day:'2-digit', month:'short', year:'numeric'}) : '—';
 const fmtDT = ts => ts ? new Date(ts).toLocaleString('es-ES', {day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'}) : '—';
@@ -373,6 +380,7 @@ const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
 const todayISO = () => new Date().toISOString().slice(0,10);
 function mergeCfg(c){
   const d = clone(DEFAULT_CONFIG); c = c || {};
+  if (c.rulesVersion !== d.rulesVersion) c = Object.fromEntries(['programName','expiryMonths','staffPin'].filter(k => c[k] !== undefined).map(k => [k, c[k]]));
   const out = {...d, ...c, biz:{}};
   for (const k of BIZ_KEYS){ out.biz[k] = {...d.biz[k], ...(c.biz?.[k]||{})}; out.biz[k].reward = {...d.biz[k].reward, ...(c.biz?.[k]?.reward||{})}; }
   return out;
@@ -408,7 +416,7 @@ function applyChangeToCustomer(c, ch){
 
 /* ============================ BASE DE DATOS DEMO ============================ */
 const DemoDB = {
-  KEY:'fsclub_demo_v3',
+  KEY:'fsclub_demo_v4',
   async init(){
     this.s = store.getJSON(this.KEY) || { config: clone(DEFAULT_CONFIG), customers:{}, cards:{}, tx:{}, messages:[] };
     this.s.config = mergeCfg(this.s.config); this.s.tokens = this.s.tokens || {};
@@ -484,10 +492,8 @@ const DemoDB = {
       const c = this.s.customers[id]; c.createdAt = Date.now() - days*864e5;
       const tickets = [45, 60, 35].slice(0, 1+Math.floor(Math.random()*3));
       for (const tk of tickets){
-        const earn = r2(tk*0.05); const bonus = c.welcomeGiven.freya ? 0 : 3;
-        c.balances.freya = r2(c.balances.freya + earn + bonus); c.welcomeGiven.freya = true;
-        this.s.tx[id].unshift({id:rid(), ts:Date.now()-Math.random()*days*864e5, biz:'freya', type:'earn', amount:earn, ticket:tk, by:'demo'});
-        if (bonus) this.s.tx[id].unshift({id:rid(), ts:Date.now()-Math.random()*days*864e5, biz:'freya', type:'bonus', amount:bonus, by:'demo'});
+        c.balances.freya = r2(c.balances.freya + tk);
+        this.s.tx[id].unshift({id:rid(), ts:Date.now()-Math.random()*days*864e5, biz:'freya', type:'spend', amount:tk, ticket:tk, by:'demo'});
       }
       const st = Math.floor(Math.random()*9); c.stamps.laundry = st;
       for (let i=0;i<st;i++) this.s.tx[id].unshift({id:rid(), ts:Date.now()-Math.random()*days*864e5, biz:'laundry', type:'stamp', amount:1, by:'demo'});
@@ -628,12 +634,13 @@ const DB = DEMO ? DemoDB : FireDB;
 function calcPurchase(cust, biz, ticket, redeemWanted, cfg){
   const bc = cfg.biz[biz]; ticket = r2(Math.max(0, ticket));
   const bal = r2(cust.balances?.[biz] || 0);
+  if (bc.spendGoal > 0) return { ticket, bal, maxRedeem:0, redeem:0, paid:ticket, earn:0, bonus:0, spend:ticket, newBal:r2(bal + ticket) };
   const maxRedeem = r2(Math.min(bal, ticket * (bc.maxRedeemPct||0) / 100));
   const redeem = r2(Math.min(Math.max(0, redeemWanted||0), maxRedeem));
   const paid = r2(ticket - redeem);
   const earn = (bc.cashbackPct > 0 && paid >= (bc.minTicket||0) && paid > 0) ? r2(paid * bc.cashbackPct / 100) : 0;
   const bonus = (earn > 0 && bc.welcomeBonus > 0 && !cust.welcomeGiven?.[biz]) ? r2(bc.welcomeBonus) : 0;
-  return { ticket, bal, maxRedeem, redeem, paid, earn, bonus, newBal: r2(bal - redeem + earn + bonus) };
+  return { ticket, bal, maxRedeem, redeem, paid, earn, bonus, spend:0, newBal: r2(bal - redeem + earn + bonus) };
 }
 function isExpired(c, cfg){
   if (!c.lastActivity || !cfg.expiryMonths) return false;
@@ -647,7 +654,7 @@ function visibleMessages(msgs, cust){
 function txLabel(e, lang=LANG){ return T[lang]['tx_'+e.type] || e.type; }
 function txSign(e){ return ['redeem','reward','expire'].includes(e.type) ? -1 : 1; }
 function txAmount(e, lang=LANG){
-  if (e.type==='stamp' || e.type==='gift' || e.type==='reward' || (e.type==='expire' && e.unit==='stamps')) return (txSign(e)<0?'−':'+') + (e.amount||1) + ' ' + (lang==='es'?'sello':lang==='de'?'Stempel':'stamp') + ((e.amount||1)>1 && lang!=='de' ? 's':'');
+  if (e.unit !== 'eur' && (e.type==='stamp' || e.type==='gift' || e.type==='reward') || (e.type==='expire' && e.unit==='stamps')) return (txSign(e)<0?'−':'+') + (e.amount||1) + ' ' + (lang==='es'?'sello':lang==='de'?'Stempel':'stamp') + ((e.amount||1)>1 && lang!=='de' ? 's':'');
   return (txSign(e)<0?'−':'+') + money(e.amount, lang);
 }
 
@@ -711,13 +718,18 @@ async function renderCustomer(){
 
   const wallets = BIZ_KEYS.map(k => {
     const bc = cfg.biz[k]; const b = BIZ[k];
-    const hasCash = bc.cashbackPct > 0 || (me.balances[k]||0) > 0;
+    const hasSpend = bc.spendGoal > 0;
+    const hasCash = !hasSpend && (bc.cashbackPct > 0 || (me.balances[k]||0) > 0);
     const hasSt = bc.stampsGoal > 0;
+    const bal = r2(me.balances[k]||0), sg = bc.spendGoal;
     const st = me.stamps[k]||0; const goal = bc.stampsGoal;
     const reward = bc.reward?.[LANG] || bc.reward?.es || '';
     return `<div class="wallet" style="--c:${b.color}">
       <div class="bn">${bizIcon(k)}${esc(b.short)}</div>
       ${hasCash ? `<div class="amt">${money(me.balances[k])}</div><div class="lbl">${t('balance')}</div>` : ''}
+      ${hasSpend ? `<div class="amt">${money(bal)}<span style="font-size:.95rem;opacity:.6"> / ${money(sg)}</span></div><div class="lbl">${t('spent')}</div>
+        <div class="bar"><i style="width:${Math.min(100, bal/sg*100)}%"></i></div>
+        <div class="reward">${bal>=sg ? t('reward_ready') : t('to_reward_eur',{n:money(sg-bal), reward:esc(reward)})}</div>` : ''}
       ${hasSt ? `${hasCash?'<div style="height:8px"></div>':`<div class="amt">${st}<span style="font-size:1rem;opacity:.6">/${goal}</span></div><div class="lbl">${t('stamps')}</div>`}
         <div class="dots">${Array.from({length:goal}, (_,i)=>`<i class="${i<st?'on':''}${i<st && i>=(seen[k]||0)?' pop':''}" style="${i<st && i>=(seen[k]||0)?`animation-delay:${(i-(seen[k]||0))*0.15+0.3}s`:''}"></i>`).join('')}</div>
         <div class="reward">${st>=goal ? t('reward_ready') : t('to_reward',{n:goal-st, reward:esc(reward)})}</div>` : ''}
@@ -732,10 +744,17 @@ async function renderCustomer(){
     if (bc.welcomeBonus > 0) rules.push(t('rule_welcome',{biz:bn, amt:money(bc.welcomeBonus)}));
     if (bc.stampsGoal > 0) rules.push(t('rule_stamps',{biz:bn, n:bc.stampsGoal, reward:esc(bc.reward?.[LANG]||bc.reward?.es||'')}));
     if (bc.stampsGoal > 0 && ws[k]) rules.push(t('rule_gift',{biz:bn, n:ws[k]}));
+    if (bc.spendGoal > 0) rules.push(t('rule_spend',{biz:bn, goal:money(bc.spendGoal), reward:esc(bc.reward?.[LANG]||bc.reward?.es||'')}));
   }
   const banners = [];
   for (const k of BIZ_KEYS){
-    const bc = cfg.biz[k]; if (!bc.stampsGoal) continue;
+    const bc = cfg.biz[k];
+    if (bc.spendGoal > 0){
+      const left = r2(bc.spendGoal - (me.balances[k]||0));
+      if (left > 0 && left <= 30) banners.push(`<div class="banner one">⭐ <span>${t('one_left_eur',{n:money(left), reward:esc(bc.reward?.[LANG]||bc.reward?.es||'')})}</span></div>`);
+      else if (left <= 0) banners.push(`<div class="banner gift">🎁 <span>${t('reward_ready')} ${esc(bc.reward?.[LANG]||bc.reward?.es||'')}</span></div>`);
+    }
+    if (!bc.stampsGoal) continue;
     const st = me.stamps[k]||0, reward = esc(bc.reward?.[LANG]||bc.reward?.es||'');
     const onlyGift = ws[k] && st === ws[k] && !tx.some(e => e.biz===k && e.type!=='gift');
     if (onlyGift) banners.push(`<div class="banner gift">🎁 <span>${t('gift_banner',{n:ws[k], biz:BIZ[k].short})}</span></div>`);
@@ -798,6 +817,13 @@ async function renderCustomer(){
     if (st > before && st >= bc.stampsGoal){ celebrate({reward:true, title:t('reward_title'), text:t('reward_text',{reward})}); break; }
     if (st > before && !(before === 0 && st === ws[k])){ celebrate({title:t('stamp_ok',{n:st, goal:bc.stampsGoal}), text:t('stamp_keep',{left:bc.stampsGoal-st, reward}), big:`${st}/${bc.stampsGoal}`}); break; }
   }
+  const seenBalKey = 'fs_seenbal_' + me.id; const seenBal = store.getJSON(seenBalKey);
+  for (const k of BIZ_KEYS){
+    const sg = cfg.biz[k].spendGoal; if (!sg || !seenBal || $('#cel')) continue;
+    const now = me.balances[k]||0, before = seenBal[k]||0;
+    if (Math.floor(now/sg) > Math.floor(before/sg)) celebrate({reward:true, title:t('reward_title'), text:t('reward_text',{reward:cfg.biz[k].reward?.[LANG]||cfg.biz[k].reward?.es||''})});
+  }
+  store.setJSON(seenBalKey, {...me.balances});
   store.setJSON(seenKey, {...me.stamps});
 }
 
@@ -854,6 +880,7 @@ function renderJoin(cfg, mode='join', info=''){
     if (bc.cashbackPct > 0) benefits.push(t('rule_cash',{biz:bn, pct:bc.cashbackPct, min:money(bc.minTicket)}));
     if (bc.welcomeBonus > 0) benefits.push(t('rule_welcome',{biz:bn, amt:money(bc.welcomeBonus)}));
     if (bc.stampsGoal > 0) benefits.push(t('rule_stamps',{biz:bn, n:bc.stampsGoal, reward:esc(bc.reward?.[LANG]||'')}));
+    if (bc.spendGoal > 0) benefits.unshift(t('rule_spend',{biz:bn, goal:money(bc.spendGoal), reward:esc(bc.reward?.[LANG]||'')}));
     if (bc.stampsGoal > 0 && bc.welcomeStamps > 0) benefits.push(t('rule_gift',{biz:bn, n:welcomeStamps(cfg)[k]}));
   }
   let body;
@@ -1004,13 +1031,23 @@ async function tabCaja(root, cfg){
     box.innerHTML = `<div class="panel" style="margin-top:14px">
       <div class="row"><div><h3>${esc(c.name)}</h3><div class="small muted">${esc(c.email)} · ${fmtCard(c.cardNo)} · ${(c.lang||'es').toUpperCase()} ${c.consentMkt?'· 📣 acepta ofertas':''}</div></div></div>
       <div class="kpi" style="margin-top:10px">${BIZ_KEYS.map(k=>`<div class="k"><span class="tag ${BIZ[k].cls}">${BIZ[k].short}</span>
-        <b>${moneyES(c.balances[k])}</b>${cfg.biz[k].stampsGoal?`<span class="small muted">${c.stamps[k]||0}/${cfg.biz[k].stampsGoal} sellos</span>`:''}</div>`).join('')}</div>
+        ${(cfg.biz[k].spendGoal || cfg.biz[k].cashbackPct || c.balances[k]) ? `<b>${moneyES(c.balances[k])}${cfg.biz[k].spendGoal?` <span class="small muted">/ ${moneyES(cfg.biz[k].spendGoal)}</span>`:''}</b>` : ''}${cfg.biz[k].stampsGoal?`<span class="small muted">${c.stamps[k]||0}/${cfg.biz[k].stampsGoal} sellos</span>`:''}</div>`).join('')}</div>
       <h3 style="margin-top:14px">Últimos movimientos</h3>
       <div>${tx.length ? tx.slice(0,8).map(e=>`<div class="tx"><div><span class="tag ${BIZ[e.biz]?.cls||''}">${BIZ[e.biz]?.short||''}</span> ${txLabel(e,'es')} ${e.ticket?`<span class="small muted">(ticket ${moneyES(e.ticket)})</span>`:''}<div class="small muted">${fmtDT(e.ts)}${e.by&&e.by!=='demo'?' · '+esc(e.by):''}</div></div><div class="${txSign(e)<0?'minus':'plus'}">${txAmount(e,'es')}</div></div>`).join('') : '<p class="small muted">Sin movimientos.</p>'}</div>
     </div>`;
     const bc = cfg.biz[S.biz]; const b = BIZ[S.biz];
     let html = '';
-    if (bc.cashbackPct > 0 || (c.balances[S.biz]||0) > 0){
+    if (bc.spendGoal > 0){
+      const bal = r2(c.balances[S.biz]||0), nRw = Math.floor(bal / bc.spendGoal);
+      html += `<div class="panel stack"><h3>Registrar compra · ${b.short}</h3>
+        <div><label class="f" for="tkS">Importe del ticket (€)</label><input type="number" id="tkS" min="0" step="0.01" inputmode="decimal" placeholder="0,00"></div>
+        <div class="sum" id="sumS"></div>
+        <button class="btn block ${b.cls}" id="confirmS" disabled>Confirmar</button></div>
+        <div class="panel stack"><h3>Premio · ${b.short}</h3>
+        <div class="bar" style="--c:${b.color};height:14px"><i style="width:${Math.min(100, bal/bc.spendGoal*100)}%"></i></div>
+        <div class="small">${moneyES(bal)} de ${moneyES(bc.spendGoal)} acumulados${nRw ? ` · <b>${nRw} premio${nRw>1?'s':''} disponible${nRw>1?'s':''}</b>` : ` · faltan ${moneyES(bc.spendGoal - bal)}`}</div>
+        <button class="btn ${nRw?b.cls:'ghost'}" id="rwS" ${nRw?'':'disabled'}>🎁 Canjear premio (${esc(bc.reward?.es||'')})</button></div>`;
+    } else if (bc.cashbackPct > 0 || (c.balances[S.biz]||0) > 0){
       html += `<div class="panel stack"><h3>Registrar compra · ${b.short}</h3>
         <div><label class="f" for="tk">Importe del ticket (€)</label><input type="number" id="tk" min="0" step="0.01" inputmode="decimal" placeholder="0,00"></div>
         <label class="check"><input type="checkbox" id="useBal" ${(c.balances[S.biz]||0)>0?'':'disabled'}> <span>Usar saldo del cliente (disponible ${moneyES(c.balances[S.biz])}, máx. ${bc.maxRedeemPct}% del ticket)</span></label>
@@ -1027,6 +1064,37 @@ async function tabCaja(root, cfg){
     }
     if (!html) html = `<div class="panel muted">Este negocio no tiene cashback ni sellos activos. Actívalos en “Reglas”.</div>`;
     op.innerHTML = html;
+
+    const tkS = $('#tkS');
+    if (tkS){
+      const updS = () => {
+        const ticket = parseFloat(String(tkS.value).replace(',','.')) || 0;
+        const p = calcPurchase(c, S.biz, ticket, 0, cfg); const g = bc.spendGoal;
+        const cross = Math.floor(p.newBal/g) > Math.floor(p.bal/g);
+        $('#sumS').innerHTML = `<div class="line big"><span>A cobrar</span><span>${moneyES(p.ticket)}</span></div>
+          <div class="line"><span>Se suma a su tarjeta</span><span>+${moneyES(p.spend)}</span></div>
+          <div class="line"><span>Acumulado después</span><span><b>${moneyES(p.newBal)} / ${moneyES(g)}</b></span></div>
+          ${cross ? `<div class="line" style="color:var(--ok);font-weight:700"><span>🎁 Con esta compra consigue un premio</span><span></span></div>` : ''}`;
+        $('#confirmS').disabled = !(p.ticket > 0);
+        return p;
+      };
+      tkS.oninput = updS; updS();
+      $('#confirmS').onclick = async () => {
+        const p = updS(); if (!(p.ticket > 0)) return;
+        $('#confirmS').disabled = true;
+        try{
+          S.cust = await DB.apply(c.id, {biz:S.biz, balanceDelta:p.spend}, [{biz:S.biz, type:'spend', amount:p.spend, ticket:p.ticket}]);
+          const nb = S.cust.balances[S.biz];
+          toast(nb >= bc.spendGoal ? `Hecho. 🎁 ¡Tiene un premio! (${moneyES(nb)})` : `Hecho. Lleva ${moneyES(nb)} de ${moneyES(bc.spendGoal)}`, 4000); draw();
+        }catch(ex){ toast(ex.message); $('#confirmS').disabled = false; }
+      };
+      $('#rwS').onclick = async () => {
+        try{
+          S.cust = await DB.apply(c.id, {biz:S.biz, balanceDelta:-bc.spendGoal}, [{biz:S.biz, type:'reward', amount:bc.spendGoal, unit:'eur'}]);
+          toast('Premio canjeado: ' + (bc.reward?.es||'')); draw();
+        }catch(ex){ toast(ex.message); }
+      };
+    }
 
     const tk = $('#tk');
     if (tk){
@@ -1165,7 +1233,9 @@ async function tabClientes(root, cfg){
   const totals = BIZ_KEYS.map(k => [k, r2(list.reduce((s,c)=>s+(c.balances?.[k]||0),0))]);
   root.innerHTML = `<div class="panel stack">
     <div class="kpi"><div class="k">Clientes<b>${list.length}</b></div><div class="k">Aceptan ofertas<b>${list.filter(c=>c.consentMkt).length}</b></div>
-      ${totals.map(([k,v])=>`<div class="k">Saldo pendiente ${BIZ[k].short}<b>${moneyES(v)}</b></div>`).join('')}</div>
+      ${totals.map(([k,v])=> cfg.biz[k].spendGoal
+        ? `<div class="k">Premios pendientes ${BIZ[k].short}<b>${list.reduce((s,c)=>s+Math.floor((c.balances?.[k]||0)/cfg.biz[k].spendGoal),0)}</b></div>`
+        : (v ? `<div class="k">Saldo pendiente ${BIZ[k].short}<b>${moneyES(v)}</b></div>` : '')).join('')}</div>
     <div class="row wrapr"><input type="text" id="q" placeholder="Buscar por nombre, email o nº de tarjeta" value="${esc(S.search)}" style="flex:1;min-width:220px">
       <button class="btn ghost sm" id="csvC">Copiar CSV</button>${DEMO ? '' : '<button class="btn ghost sm" id="csvD">Descargar CSV</button>'}
       ${DEMO?'<button class="btn ghost sm" id="seed">Cargar clientes de ejemplo</button>':''}</div>
@@ -1234,10 +1304,16 @@ async function tabResumen(root, cfg){
   const months = [...new Set(tx.map(e=>ym(e.ts)).concat([ym(now)]))].sort().reverse().slice(0,12);
   const agg = (k, m, type) => r2(tx.filter(e=>e.biz===k && ym(e.ts)===m && e.type===type).reduce((s,e)=>s+(Number(e.amount)||0),0));
   const cnt = (k, m, type) => tx.filter(e=>e.biz===k && ym(e.ts)===m && e.type===type).length;
+  const cols = k => { const bc = cfg.biz[k], n = BIZ[k].short, out = [];
+    if (bc.spendGoal) out.push([`${n}: ventas a socios`, m => moneyES(agg(k,m,'spend'))], [`${n}: premios dados`, m => cnt(k,m,'reward')]);
+    if (bc.cashbackPct) out.push([`${n}: cashback + regalos`, m => moneyES(agg(k,m,'earn')+agg(k,m,'bonus'))], [`${n}: saldo usado`, m => moneyES(agg(k,m,'redeem'))]);
+    if (bc.stampsGoal) out.push([`${n}: sellos / premios`, m => `${cnt(k,m,'stamp')} / ${cnt(k,m,'reward')}`]);
+    return out; };
+  const all = BIZ_KEYS.flatMap(cols);
   root.innerHTML = `<div class="panel stack"><h3>Resumen mensual del programa</h3>
-    <p class="small muted">Cashback dado = coste del programa. Saldo usado = descuento aplicado en caja (el ticket que se declara es lo cobrado, no el importe antes del descuento; confírmalo con tu asesor).</p>
-    <div class="tablewrap"><table><thead><tr><th>Mes</th>${BIZ_KEYS.map(k=>`<th>${BIZ[k].short}: cashback + regalos</th><th>${BIZ[k].short}: saldo usado</th><th>${BIZ[k].short}: sellos / premios</th>`).join('')}</tr></thead>
-    <tbody>${months.map(m=>`<tr><td><b>${m}</b></td>${BIZ_KEYS.map(k=>`<td>${moneyES(agg(k,m,'earn')+agg(k,m,'bonus'))}</td><td>${moneyES(agg(k,m,'redeem'))}</td><td>${cnt(k,m,'stamp')} / ${cnt(k,m,'reward')}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+    <p class="small muted">Ventas a socios = lo que han gastado los clientes con tarjeta. Premios dados = masajes o secados regalados ese mes.</p>
+    <div class="tablewrap"><table><thead><tr><th>Mes</th>${all.map(c=>`<th>${c[0]}</th>`).join('')}</tr></thead>
+    <tbody>${months.map(m=>`<tr><td><b>${m}</b></td>${all.map(c=>`<td>${c[1](m)}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`;
 }
 
 /* ---------- Ajustes / reglas ---------- */
@@ -1254,6 +1330,7 @@ async function tabAjustes(root, cfg){
         <div style="flex:1;min-width:120px"><label class="f">Compra mínima €</label>${num(k+'_mt', b.minTicket, '1')}</div></div>
       <div class="row wrapr"><div style="flex:1;min-width:120px"><label class="f">Máx. pagable con saldo %</label>${num(k+'_mr', b.maxRedeemPct, '5')}</div>
         <div style="flex:1;min-width:120px"><label class="f">Regalo bienvenida €</label>${num(k+'_wb', b.welcomeBonus, '0.5')}</div></div>
+      <div><label class="f">Premio cada X € gastados (0 = no)</label>${num(k+'_spg', b.spendGoal||0, '5')}</div>
       <div class="row wrapr"><div style="flex:1;min-width:120px"><label class="f">Sellos para premio (0 = sin sellos)</label>${num(k+'_sg', b.stampsGoal)}</div>
         <div style="flex:1;min-width:120px"><label class="f">Sellos de regalo al darse de alta (0 o 1)</label>${num(k+'_ws', b.welcomeStamps||0)}</div></div>
       <div class="row wrapr">${['es','en','de'].map(l=>`<div style="flex:1;min-width:120px"><label class="f">Premio (${l.toUpperCase()})</label><input type="text" id="${k}_rw_${l}" value="${esc(b.reward?.[l]||'')}"></div>`).join('')}</div>
@@ -1267,7 +1344,7 @@ async function tabAjustes(root, cfg){
     c.programName = $('#pn').value.trim() || DEFAULT_CONFIG.programName; c.expiryMonths = v('ex');
     if (DEMO) c.staffPin = $('#pin2').value.trim() || '1234';
     for (const k of BIZ_KEYS){
-      Object.assign(c.biz[k], {cashbackPct:v(k+'_cp'), minTicket:v(k+'_mt'), maxRedeemPct:Math.min(100,v(k+'_mr')), welcomeBonus:v(k+'_wb'), stampsGoal:Math.round(v(k+'_sg')), welcomeStamps:Math.min(1, Math.round(v(k+'_ws')))});
+      Object.assign(c.biz[k], {cashbackPct:v(k+'_cp'), minTicket:v(k+'_mt'), maxRedeemPct:Math.min(100,v(k+'_mr')), welcomeBonus:v(k+'_wb'), stampsGoal:Math.round(v(k+'_sg')), welcomeStamps:Math.min(1, Math.round(v(k+'_ws'))), spendGoal:v(k+'_spg')});
       for (const l of ['es','en','de']) c.biz[k].reward[l] = $(`#${k}_rw_${l}`).value.trim();
     }
     await DB.saveConfig(c); $('#aok').textContent = 'Guardado ✓'; setTimeout(()=>{ const a=$('#aok'); if(a) a.textContent=''; }, 2000);
